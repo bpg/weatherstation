@@ -26,7 +26,7 @@
 #define DHT22_PIN           8
 #define BATT_VOLTAGE_PIN    7
 #define BATT_CHARGE_PIN     6
-#define SLEEP_SEC           60
+#define SLEEP_SEC           300
 
 DS3231 RTC;
 DHT22 myDHT22(DHT22_PIN);
