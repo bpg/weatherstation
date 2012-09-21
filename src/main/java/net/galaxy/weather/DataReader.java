@@ -29,53 +29,50 @@ public class DataReader implements Runnable {
     public void run() {
         ByteBuffer buffer = ByteBuffer.allocate(128);
 
-        try {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    int ch = -1;
-                    // skip all bytes until find a new message
-                    while (true) {
-                        ch = inputStream.read();
-                        if (ch == -1) {
-                            throw new IOException("No more data");
-                        }
-                        if (ch == (int) '~') {
-                            buffer.put((byte) ch);
-                            break;
-                        }
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
+                int ch = -1;
+                // skip all bytes until find a new message
+                while (true) {
+                    ch = inputStream.read();
+                    if (ch == -1) {
+                        throw new IOException("No more data");
                     }
-
-                    // start reading the message
-                    int count = 1; // '~' already in buffer
-                    while (true) {
-                        ch = inputStream.read();
-                        if (ch == -1) {
-                            throw new IOException("No more data");
-                        }
-                        if (ch == (int) '~') {
-                            throw new IOException("Data format exception");
-                        }
+                    if (ch == (int) '~') {
                         buffer.put((byte) ch);
-                        count++;
-                        if (ch == (int) '=') {
-                            break;
-                        }
+                        break;
                     }
-
-                    try {
-                        queue.put(MeasurementParser.parse(new String(buffer.array(), 0, count, "ASCII").trim()));
-                    } catch (IllegalArgumentException ex) {
-                        logger.error("Data error", ex);
-                    }
-                } catch (IOException ex) {
-                    logger.error("Error reading data. Reset", ex);
                 }
 
-                buffer.rewind();
+                // start reading the message
+                int count = 1; // '~' already in buffer
+                while (true) {
+                    ch = inputStream.read();
+                    if (ch == -1) {
+                        throw new IOException("No more data");
+                    }
+                    if (ch == (int) '~') {
+                        throw new IOException("Data format exception");
+                    }
+                    buffer.put((byte) ch);
+                    count++;
+                    if (ch == (int) '=') {
+                        break;
+                    }
+                }
+
+                try {
+                    queue.put(MeasurementParser.parse(new String(buffer.array(), 0, count, "ASCII").trim()));
+                } catch (IllegalArgumentException ex) {
+                    logger.error("Data error", ex);
+                }
+            } catch (Exception ex) {
+                logger.error("Error reading data. Reset", ex);
             }
-            logger.warn("Reader terminated: Thread was interrupted");
-        } catch (Exception ex) {
-            logger.warn("Reader terminated: exception", ex);
+
+            buffer.rewind();
         }
+
+        logger.warn("Reader terminated: Thread was interrupted");
     }
 }

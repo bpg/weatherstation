@@ -26,8 +26,11 @@ public class Main {
         new Thread(new DataReader(connection.getInputStream(), queue), "READER").start();
         new Thread(new DataProcessor(queue), "PROCESSOR").start();
 
-        while (true) {
-
+        logger.info("Listening...");
+        while (!Thread.currentThread().isInterrupted()) {
+            Thread.sleep(1000);
         }
+
+        logger.info("FINISHED");
     }
 }

@@ -52,12 +52,19 @@ public class MeasurementParser {
         long timestamp = Long.parseLong(parts[0]) * 1000 + DT_ADD;
 
         String[] thParts = parts[1].split(":");
+        double temp = 0;
+        double humid = 0;
+        if (thParts.length == 2) {
+            temp = Integer.valueOf(thParts[0], 10) / 10.0;
+            humid = Integer.valueOf(thParts[1], 10) / 10.0;
+            // temperature sensor error
+        }
 
         MathContext mc = new MathContext(2);
         return new MeasurementDto(
                 timestamp,
-                Integer.valueOf(thParts[0], 10) / 10.0,
-                Integer.valueOf(thParts[1], 10) / 10.0,
+                temp,
+                humid,
                 Integer.valueOf(parts[4], 10) / 100.0,
                 MeasurementDto.BatteryStatus.values()[Integer.valueOf(parts[2], 10)],
                 Integer.valueOf(parts[3], 10) / 100.0
