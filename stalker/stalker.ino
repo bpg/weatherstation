@@ -23,13 +23,15 @@
 }
 
 
-#define DHT22_PIN           8
-#define BATT_VOLTAGE_PIN    7
-#define BATT_CHARGE_PIN     6
+#define PIN_DHT22           8
+#define PIN_BATT_VOLTAGE    7
+#define PIN_BATT_CHARGE     6
+#define PIN_ONBOARD_LED     13
+#define PIN_BEE_POWER		5
 #define SLEEP_SEC           300
 
 DS3231 RTC;
-DHT22 myDHT22(DHT22_PIN);
+DHT22 myDHT22(PIN_DHT22);
 
 //static uint8_t prevSecond=0;
 static DateTime interruptTime;
@@ -45,9 +47,11 @@ void INT0_ISR()
 
 void setup()
 {
-    // Initialize INT0 pin for accepting interrupts
     PORTD |= 0x04;
     DDRD &=~ 0x04;
+    
+    digitalWrite(PIN_ONBOARD_LED, HIGH);
+    
     pinMode(4, INPUT);
 
     Serial.begin(9600);
@@ -64,9 +68,11 @@ void setup()
     interruptTime = DateTime(start.get() + SLEEP_SEC); //Add 5 mins in seconds to start time
 
     analogReference(INTERNAL);
-    pinMode(BATT_CHARGE_PIN, INPUT);
-    pinMode(BATT_VOLTAGE_PIN, INPUT);
-    analogRead(BATT_CHARGE_PIN);
+    pinMode(PIN_BATT_CHARGE, INPUT);
+    pinMode(PIN_BATT_VOLTAGE, INPUT);
+    analogRead(PIN_BATT_CHARGE);
+    
+    digitalWrite(PIN_ONBOARD_LED, LOW);
 }
 
 
@@ -108,7 +114,7 @@ String getChargeStatus()
 
 String getVoltage()
 {
-    unsigned int bat_read = analogRead(BATT_VOLTAGE_PIN);
+    unsigned int bat_read = analogRead(PIN_BATT_VOLTAGE);
     //  (1/1024)*6=0.0064453125,
     float voltage = (float)bat_read * 0.0064453125;
     return String((int)(voltage * 100));
@@ -123,7 +129,10 @@ String getInternalTemperature()
 void loop()
 {
     ////////////////////// START : Application or data logging code//////////////////////////////////
-    delay(2000);
+    digitalWrite(PIN_ONBOARD_LED, HIGH);
+    delay(2000); // required for DHT22
+    
+    digitalWrite(PIN_BEE_POWER, LOW);
 
     String out =
             getTimestamp() +
@@ -146,11 +155,13 @@ void loop()
 
     delay(100);
 
+    digitalWrite(PIN_ONBOARD_LED, LOW);
+    digitalWrite(PIN_BEE_POWER, HIGH);
+    ////////////////////////END : Application code ////////////////////////////////
+
     RTC.clearINTStatus(); //This function call is  a must to bring /INT pin HIGH after an interrupt.
     RTC.enableInterrupts(interruptTime.hour(),interruptTime.minute(),interruptTime.second());    // set the interrupt at (h,m,s)
     attachInterrupt(0, INT0_ISR, LOW);  //Enable INT0 interrupt (as ISR disables interrupt). This strategy is required to handle LEVEL triggered interrupt
-    ////////////////////////END : Application code ////////////////////////////////
-
 
     //\/\/\/\/\/\/\/\/\/\/\/\/Sleep Mode and Power Down routines\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
     //Power Down routines
