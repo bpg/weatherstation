@@ -30,14 +30,14 @@ public class Connection {
 
     private static final String PORT_OWNER = "WeatherStation";
     private static final String PORT_NAME = System.getProperty("serial.port.name", "/dev/ttyUSB0");
-    private static final int PORT_BAUD_RATE = 9600;
+    private static final int PORT_BAUD_RATE = Integer.getInteger("serial.port.baud", 9600);
 
     private InputStream inputStream;
     private OutputStream outputStream;
 
     public void open()  {
         Preconditions.checkArgument(!PORT_NAME.isEmpty());
-        logger.info("Opening serial port `{}`", PORT_NAME);
+        logger.info("Opening serial port: {}", PORT_NAME);
 
         String ports = System.getProperty("gnu.io.rxtx.SerialPorts", "");
         ports += PORT_NAME + File.pathSeparator; // pathSeparator -- is it required??
@@ -99,6 +99,7 @@ public class Connection {
         serialPort.setSerialPortParams(PORT_BAUD_RATE, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
                 SerialPort.PARITY_NONE);
         serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
+        logger.info("Set baud rate: {}", PORT_BAUD_RATE);
     }
 
 

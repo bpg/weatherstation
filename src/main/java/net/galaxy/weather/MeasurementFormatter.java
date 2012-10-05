@@ -17,4 +17,15 @@ public class MeasurementFormatter {
                 DATE_TIME_FORMATTER.print(dto.getTimestamp()), dto.getTemperature(), dto.getHumidity(),
                 dto.getTemperatureInternal(), dto.getBatteryVoltage(), dto.getBatteryStatus());
     }
+
+    /**
+     * Munin-cpecific format
+     *
+     * @return
+     */
+    public static String toValues(MeasurementDto dto) {
+        return String.format("temp.value %.2f\nhumid.value %.2f\ninttemp.value %.2f\nbvoltage.value %.2f\nbstatus.value %d",
+                dto.getTemperature(), dto.getHumidity(),
+                dto.getTemperatureInternal(), dto.getBatteryVoltage(), dto.getBatteryStatus().equals(MeasurementDto.BatteryStatus.CHARGING) ? 1 : 0);
+    }
 }

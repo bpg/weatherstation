@@ -14,15 +14,15 @@ public class MeasurementFormatterTest {
 
     @Test
     public void testFormatter() {
-        String str = MeasurementFormatter.toString(new MeasurementDto(
+        MeasurementDto dto = new MeasurementDto(
                 System.currentTimeMillis(),
                 22.1,
                 44.5,
                 22.15,
                 MeasurementDto.BatteryStatus.CHARGING,
-                4.01));
-        System.out.println(str);
-
+                4.01);
+        System.out.println(MeasurementFormatter.toString(dto));
+        System.out.println(MeasurementFormatter.toValues(dto));
     }
 
 }
