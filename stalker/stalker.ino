@@ -24,10 +24,13 @@
 
 
 #define PIN_DHT22           8
+
 #define PIN_BATT_VOLTAGE    7
 #define PIN_BATT_CHARGE     6
 #define PIN_ONBOARD_LED     13
-#define PIN_BEE_POWER		5
+#define PIN_BEE_POWER       5
+#define PIN_TF_POWER        4
+
 #define SLEEP_SEC           300
 
 DS3231 RTC;
@@ -47,12 +50,20 @@ void INT0_ISR()
 
 void setup()
 {
-    PORTD |= 0x04;
-    DDRD &=~ 0x04;
-    
-    digitalWrite(PIN_ONBOARD_LED, HIGH);
-    
-    pinMode(4, INPUT);
+    for (byte i=0; i<20; i++) {
+        pinMode(i, INPUT);        //make all pins input pins
+        digitalWrite(i, HIGH);    //with pullup resistors to minimize power consumption
+    }
+
+    // specific pins
+    pinMode(PIN_BATT_CHARGE, INPUT);
+    pinMode(PIN_BATT_VOLTAGE, INPUT);
+    pinMode(PIN_BEE_POWER, OUTPUT);
+    pinMode(PIN_TF_POWER, OUTPUT);
+    digitalWrite(PIN_TF_POWER, LOW); // turn off SD card controller
+
+    pinMode(PIN_ONBOARD_LED, OUTPUT);
+    digitalWrite(PIN_ONBOARD_LED, LOW);
 
     Serial.begin(9600);
     Wire.begin();
@@ -68,11 +79,9 @@ void setup()
     interruptTime = DateTime(start.get() + SLEEP_SEC); //Add 5 mins in seconds to start time
 
     analogReference(INTERNAL);
-    pinMode(PIN_BATT_CHARGE, INPUT);
-    pinMode(PIN_BATT_VOLTAGE, INPUT);
     analogRead(PIN_BATT_CHARGE);
-    
-    digitalWrite(PIN_ONBOARD_LED, LOW);
+ 
+    //digitalWrite(PIN_ONBOARD_LED, LOW);
 }
 
 
@@ -129,10 +138,8 @@ String getInternalTemperature()
 void loop()
 {
     ////////////////////// START : Application or data logging code//////////////////////////////////
-    digitalWrite(PIN_ONBOARD_LED, HIGH);
+    //digitalWrite(PIN_ONBOARD_LED, HIGH);
     delay(2000); // required for DHT22
-    
-    digitalWrite(PIN_BEE_POWER, LOW);
 
     String out =
             getTimestamp() +
@@ -145,6 +152,8 @@ void loop()
             String("|") +
             getInternalTemperature();
 
+    digitalWrite(PIN_BEE_POWER, HIGH);
+    delay(150);
     Serial.print("~");
     Serial.print(out);
     Serial.print("^");
@@ -153,18 +162,16 @@ void loop()
     Serial.print(calc_crc16(buff, out.length()), HEX);
     Serial.print("=");
 
-    delay(100);
+    delay(150);
+    digitalWrite(PIN_BEE_POWER, LOW);
 
-    digitalWrite(PIN_ONBOARD_LED, LOW);
-    digitalWrite(PIN_BEE_POWER, HIGH);
+    //digitalWrite(PIN_ONBOARD_LED, LOW);
     ////////////////////////END : Application code ////////////////////////////////
 
     RTC.clearINTStatus(); //This function call is  a must to bring /INT pin HIGH after an interrupt.
     RTC.enableInterrupts(interruptTime.hour(),interruptTime.minute(),interruptTime.second());    // set the interrupt at (h,m,s)
     attachInterrupt(0, INT0_ISR, LOW);  //Enable INT0 interrupt (as ISR disables interrupt). This strategy is required to handle LEVEL triggered interrupt
 
-    //\/\/\/\/\/\/\/\/\/\/\/\/Sleep Mode and Power Down routines\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
-    //Power Down routines
     cli();
     sleep_enable();      // Set sleep enable bit
     sleep_bod_disable(); // Disable brown out detection during sleep. Saves more power
@@ -181,8 +188,5 @@ void loop()
     sleep_disable();     // Wakes up sleep and clears enable bit. Before this ISR would have executed
     power_all_enable();  //This shuts enables ADC, TWI, SPI, Timers and USART
     delay(15); //This delay is required to allow CPU to stabilize
-    //Serial.println("Awake from sleep");
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/Sleep Mode and Power Saver routines\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
-
+ 
 }
