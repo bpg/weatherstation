@@ -7,22 +7,6 @@
 #include <DHT22.h>
 #include <crc16.h>
 
-//The following code is taken from sleep.h as Arduino Software v22 (avrgcc) in w32 does not have the latest sleep.h file
-#define sleep_bod_disable() \
-{ \
-  uint8_t tempreg; \
-  __asm__ __volatile__("in %[tempreg], %[mcucr]" "\n\t" \
-                       "ori %[tempreg], %[bods_bodse]" "\n\t" \
-                       "out %[mcucr], %[tempreg]" "\n\t" \
-                       "andi %[tempreg], %[not_bodse]" "\n\t" \
-                       "out %[mcucr], %[tempreg]" \
-                       : [tempreg] "=&d" (tempreg) \
-                       : [mcucr] "I" _SFR_IO_ADDR(MCUCR), \
-                         [bods_bodse] "i" (_BV(BODS) | _BV(BODSE)), \
-                         [not_bodse] "i" (~_BV(BODSE))); \
-}
-
-
 #define PIN_DHT22           8
 
 #define PIN_BATT_VOLTAGE    7
@@ -32,6 +16,7 @@
 #define PIN_TF_POWER        4
 
 #define SLEEP_SEC           300
+
 
 DS3231 RTC;
 DHT22 myDHT22(PIN_DHT22);
@@ -169,24 +154,21 @@ void loop()
     ////////////////////////END : Application code ////////////////////////////////
 
     RTC.clearINTStatus(); //This function call is  a must to bring /INT pin HIGH after an interrupt.
-    RTC.enableInterrupts(interruptTime.hour(),interruptTime.minute(),interruptTime.second());    // set the interrupt at (h,m,s)
+    RTC.enableInterrupts(interruptTime.hour(), interruptTime.minute(), interruptTime.second());    // set the interrupt at (h,m,s)
     attachInterrupt(0, INT0_ISR, LOW);  //Enable INT0 interrupt (as ISR disables interrupt). This strategy is required to handle LEVEL triggered interrupt
 
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     cli();
     sleep_enable();      // Set sleep enable bit
+    
     sleep_bod_disable(); // Disable brown out detection during sleep. Saves more power
-    sei();
-
-    //Serial.println("\nSleeping");
-    delay(15); //This delay is required to allow print to complete
-    //Shut down all peripherals like ADC before sleep. Refer Atmega328 manual
-    power_all_disable(); //This shuts down ADC, TWI, SPI, Timers and USART
+    sei();               // Set interrupts   
+    power_all_disable(); // This shuts down ADC, TWI, SPI, Timers and USART
     sleep_cpu();         // Sleep the CPU as per the mode set earlier(power down)
 
     //--------------------
 
     sleep_disable();     // Wakes up sleep and clears enable bit. Before this ISR would have executed
-    power_all_enable();  //This shuts enables ADC, TWI, SPI, Timers and USART
-    delay(15); //This delay is required to allow CPU to stabilize
- 
+    power_all_enable();  // This shuts enables ADC, TWI, SPI, Timers and USART
+    delay(15);           // This delay is required to allow CPU to stabilize
 }
