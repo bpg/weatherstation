@@ -17,13 +17,14 @@
             <includes>
                 <include>${project.groupId}:${project.artifactId}</include>
             </includes>
+            <fileMode>666</fileMode>
         </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>
             <directory>${basedir}/src/main/startup</directory>
             <includes>
-                <include>*.*</include>
+                <include>**/*</include>
             </includes>
             <excludes>
                 <exclude>*.sh</exclude>
@@ -34,7 +35,7 @@
         <fileSet>
             <directory>${basedir}/src/main/startup</directory>
             <includes>
-                <include>*.sh</include>
+                <include>**/*.sh</include>
             </includes>
             <lineEnding>unix</lineEnding>
             <filtered>true</filtered>
