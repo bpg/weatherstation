@@ -1,0 +1,88 @@
+#!/bin/sh
+# -*- sh -*-
+
+: << =cut
+
+=head1 NAME
+
+uptime - Plugin to display WeatherStation measurement
+
+=head1 NOTES
+
+Especially the average and max values on the bigger graphs (yearly) can be interesting.
+
+=head1 AUTHOR
+
+Pavel Boldyrev
+
+=head1 LICENSE
+
+Free for All
+
+=head1 MAGIC MARKERS
+
+ #%# family=auto
+ #%# capabilities=autoconf
+
+=cut
+
+SENSOR=${0##*ws_}
+
+if [ "$1" = "autoconf" ]; then
+	echo yes 
+	exit 0
+fi
+
+[ -r ./snapshot ] && FILE=./snapshot || FILE=/var/lib/weartherstation/snapshot
+
+if [ "$SENSOR" = "temp" ]; then
+    if [ "$1" = "config" ]; then
+	echo 'graph_title Wheather Station: Temperature'
+	echo 'graph_args --base 1000 -l -40 --upper-limit 40'
+	echo 'graph_scale yes'
+	echo 'graph_vlabel C'
+	echo 'graph_category other'
+	echo 'temp_int.label internal temp'
+	echo 'temp_out.label outside temp'
+	echo 'temp_out.draw AREA'
+	exit 0
+    fi
+
+    cat $FILE | grep "temp_"
+    exit 0
+fi
+
+
+if [ "$SENSOR" = "humid" ]; then
+    if [ "$1" = "config" ]; then
+	echo 'graph_title Wheather Station: Humidity'
+	echo 'graph_args --base 1000 -l 0 --upper-limit 100'
+	echo 'graph_scale no'
+	echo 'graph_vlabel %'
+	echo 'graph_category other'
+	echo 'humid_out.label humidity'
+	exit 0
+    fi
+
+    cat $FILE | grep "humid_"
+    exit 0
+fi
+
+
+if [ "$SENSOR" = "bat" ]; then
+    if [ "$1" = "config" ]; then
+	echo 'graph_title Wheather Station: Battery'
+	echo 'graph_args --base 1000 -l 3 --upper-limit 5'
+	echo 'graph_scale no'
+	echo 'graph_vlabel volts'
+	echo 'graph_category other'
+	echo 'bat_volt.label voltage'
+	echo 'bat_stat.label charging'
+	echo 'bat_stat.draw AREA'
+	exit 0
+    fi
+
+    cat $FILE | grep "bat_"
+    exit 0
+fi
+

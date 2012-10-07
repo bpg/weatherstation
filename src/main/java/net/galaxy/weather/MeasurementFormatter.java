@@ -24,8 +24,8 @@ public class MeasurementFormatter {
      * @return
      */
     public static String toValues(MeasurementDto dto) {
-        return String.format("temp.value %.2f\nhumid.value %.2f\ninttemp.value %.2f\nbvoltage.value %.2f\nbstatus.value %d",
+        return String.format("temp_out.value %.2f\nhumid_out.value %.2f\ntemp_int.value %.2f\nbat_volt.value %.2f\nbat_stat.value %d\n",
                 dto.getTemperature(), dto.getHumidity(),
-                dto.getTemperatureInternal(), dto.getBatteryVoltage(), dto.getBatteryStatus().equals(MeasurementDto.BatteryStatus.CHARGING) ? 1 : 0);
+                dto.getTemperatureInternal(), dto.getBatteryVoltage(), dto.getBatteryStatus().equals(MeasurementDto.BatteryStatus.CHARGING) ? 5 : 0);
     }
 }
