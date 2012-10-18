@@ -38,13 +38,13 @@ fi
 if [ "$SENSOR" = "temp" ]; then
     if [ "$1" = "config" ]; then
 	echo 'graph_title Wheather Station: Temperature'
-	echo 'graph_args --base 1000 -l -40 --upper-limit 40'
+	#echo 'graph_args --base 1000 -l -40 --upper-limit 40'
 	echo 'graph_scale yes'
 	echo 'graph_vlabel C'
 	echo 'graph_category other'
-	echo 'temp_int.label internal temp'
 	echo 'temp_out.label outside temp'
 	echo 'temp_out.draw AREA'
+	echo 'temp_int.label internal temp'
 	exit 0
     fi
 
@@ -76,9 +76,9 @@ if [ "$SENSOR" = "bat" ]; then
 	echo 'graph_scale no'
 	echo 'graph_vlabel volts'
 	echo 'graph_category other'
-	echo 'bat_volt.label voltage'
 	echo 'bat_stat.label charging'
 	echo 'bat_stat.draw AREA'
+	echo 'bat_volt.label voltage'
 	exit 0
     fi
 
