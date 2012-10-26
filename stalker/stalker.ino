@@ -123,7 +123,7 @@ String getInternalTemperature()
 void loop()
 {
     ////////////////////// START : Application or data logging code//////////////////////////////////
-    //digitalWrite(PIN_ONBOARD_LED, HIGH);
+    digitalWrite(PIN_ONBOARD_LED, HIGH);
     delay(2000); // required for DHT22
 
     String out =
@@ -150,7 +150,7 @@ void loop()
     delay(150);
     digitalWrite(PIN_BEE_POWER, LOW);
 
-    //digitalWrite(PIN_ONBOARD_LED, LOW);
+    digitalWrite(PIN_ONBOARD_LED, LOW);
     ////////////////////////END : Application code ////////////////////////////////
 
     RTC.clearINTStatus(); //This function call is  a must to bring /INT pin HIGH after an interrupt.
