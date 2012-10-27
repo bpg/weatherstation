@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CyclicBarrier;
 
 /**
  * Created with IntelliJ IDEA.
@@ -19,60 +20,64 @@ public class DataReader implements Runnable {
 
     private final InputStream inputStream;
     private final BlockingQueue<MeasurementDto> queue;
+    private final CyclicBarrier barrier;
 
-    public DataReader(InputStream inputStream, BlockingQueue<MeasurementDto> queue) {
+    public DataReader(InputStream inputStream, BlockingQueue<MeasurementDto> queue, CyclicBarrier barrier) {
         this.inputStream = inputStream;
         this.queue = queue;
+        this.barrier = barrier;
     }
 
     @Override
     public void run() {
         ByteBuffer buffer = ByteBuffer.allocate(128);
 
-        while (!Thread.currentThread().isInterrupted()) {
-            try {
-                int ch = -1;
-                // skip all bytes until find a new message
-                while (true) {
-                    ch = inputStream.read();
-                    if (ch == -1) {
-                        throw new IOException("No more data");
-                    }
-                    if (ch == (int) '~') {
-                        buffer.put((byte) ch);
-                        break;
-                    }
+        try {
+            int ch;
+            // skip all bytes until find a new message
+            while (true) {
+                ch = inputStream.read();
+                if (ch == -1) {
+                    throw new IOException("No more data");
                 }
-
-                // start reading the message
-                int count = 1; // '~' already in buffer
-                while (true) {
-                    ch = inputStream.read();
-                    if (ch == -1) {
-                        throw new IOException("No more data");
-                    }
-                    if (ch == (int) '~') {
-                        throw new IOException("Data format exception");
-                    }
+                if (ch == (int) '~') {
                     buffer.put((byte) ch);
-                    count++;
-                    if (ch == (int) '=') {
-                        break;
-                    }
+                    break;
                 }
-
-                try {
-                    queue.put(MeasurementParser.parse(new String(buffer.array(), 0, count, "ASCII").trim()));
-                } catch (IllegalArgumentException ex) {
-                    logger.error("Data error", ex);
-                }
-            } catch (Exception ex) {
-                logger.error("Error reading data. Reset", ex);
             }
 
-            buffer.rewind();
+            // start reading the message
+            int count = 1; // '~' already in buffer
+            while (true) {
+                ch = inputStream.read();
+                if (ch == -1) {
+                    throw new IOException("No more data");
+                }
+                if (ch == (int) '~') {
+                    throw new IOException("Data format exception");
+                }
+                buffer.put((byte) ch);
+                count++;
+                if (ch == (int) '=') {
+                    break;
+                }
+            }
+
+            try {
+                queue.put(MeasurementParser.parse(new String(buffer.array(), 0, count, "ASCII").trim()));
+            } catch (IllegalArgumentException ex) {
+                logger.error("Data error", ex);
+            }
+        } catch (Exception ex) {
+            logger.error("Error reading data. Reset", ex);
         }
 
-        logger.warn("Reader terminated: Thread was interrupted");
+        try {
+            barrier.await();
+        } catch (Exception ex) {
+            logger.error("Barrier exception", ex);
+        }
+
+        logger.warn("Reader terminated");
     }
 }

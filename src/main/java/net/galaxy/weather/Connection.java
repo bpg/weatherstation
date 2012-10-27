@@ -2,6 +2,7 @@ package net.galaxy.weather;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
 import gnu.io.SerialPort;
@@ -13,9 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.TooManyListenersException;
+import java.util.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -29,18 +28,58 @@ public class Connection {
     private SerialPort serialPort;
 
     private static final String PORT_OWNER = "WeatherStation";
-    private static final String PORT_NAME = System.getProperty("serial.port.name", "/dev/ttyUSB0");
+    private static final String PORT_NAME = System.getProperty("serial.port.name", "/dev/ttyUSB*");
     private static final int PORT_BAUD_RATE = Integer.getInteger("serial.port.baud", 9600);
 
     private InputStream inputStream;
     private OutputStream outputStream;
 
-    public void open()  {
+    public void open() {
+        logger.info("Opening port...");
         Preconditions.checkArgument(!PORT_NAME.isEmpty());
-        logger.info("Opening serial port: {}", PORT_NAME);
+        List<String> ports = new ArrayList<>();
+        if (PORT_NAME.endsWith("*")) {
+            for (int i = 0; i <= 9; i++) {
+                ports.add(PORT_NAME.replace("*", String.valueOf(i)));
+            }
+        } else {
+            ports.add(PORT_NAME);
+        }
+
+        for (String port : ports) {
+            try {
+                serialPort = openPort(port);
+                logger.info("Opened port {}");
+                break;
+            } catch (Exception ex) {
+                logger.info("Port {} is unavailable", port);
+            }
+        }
+        if (serialPort == null) {
+            throw new RuntimeException("Unable to open serial port");
+        }
+
+        try {
+            inputStream = serialPort.getInputStream();
+            outputStream = serialPort.getOutputStream();
+
+            initializeSerialPort(serialPort);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private SerialPort openPort(String portName) throws IOException {
+        Preconditions.checkNotNull(portName);
+
+        logger.debug("Opening serial port: {}", portName);
+        File file = new File(portName);
+        if (!file.exists()) {
+            throw new IOException("Port " + portName + " does not exist");
+        }
 
         String ports = System.getProperty("gnu.io.rxtx.SerialPorts", "");
-        ports += PORT_NAME + File.pathSeparator; // pathSeparator -- is it required??
+        ports += portName + File.pathSeparator; // pathSeparator -- is it required??
         System.setProperty("gnu.io.rxtx.SerialPorts", ports);
         logger.debug("Port has been added to RxTx system properties. New `gnu.io.rxtx.SerialPorts`: `{}`", ports);
 
@@ -53,15 +92,11 @@ public class Connection {
             }
             CommPort commPort = portIdentifier.open(PORT_OWNER, 0);
             if (!(commPort instanceof SerialPort)) {
-                throw new RuntimeException("Not a serial port");
+                throw new IOException("Not a serial port");
             }
-            serialPort = (SerialPort) commPort;
-
-            inputStream = serialPort.getInputStream();
-            outputStream = serialPort.getOutputStream();
-
-            initializeSerialPort(serialPort);
+            return (SerialPort) commPort;
         } catch (Exception ex) {
+            Throwables.propagateIfPossible(ex, IOException.class);
             throw new RuntimeException(ex);
         }
     }

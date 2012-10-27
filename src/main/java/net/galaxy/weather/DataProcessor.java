@@ -28,6 +28,7 @@ public class DataProcessor implements Runnable {
 
     @Override
     public void run() {
+        logger.info("Start processor");
         try {
             while (!Thread.currentThread().isInterrupted()) {
                 MeasurementDto dto = queue.take();
@@ -38,8 +39,10 @@ public class DataProcessor implements Runnable {
                     logger.error("Unable to write snapshot information to " + SNAPSHOT_FILE, ex);
                 }
             }
+        } catch (InterruptedException ex) {
+            logger.info("Processor has been terminated");
         } catch (Exception ex) {
-            logger.warn("Processor terminated: exception", ex);
+            logger.warn("Processor has been terminated,  exception:", ex);
         }
     }
 }
