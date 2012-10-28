@@ -51,40 +51,42 @@ public class DataReader implements Runnable {
         ByteBuffer buffer = ByteBuffer.allocate(128);
 
         try {
-            int ch;
-            // skip all bytes until find a new message
-            while (true) {
-                ch = inputStream.read();
-                if (ch == -1) {
-                    throw new IOException("No more data");
+            while (!Thread.currentThread().isInterrupted()) {
+                int ch;
+                // skip all bytes until find a new message
+                while (true) {
+                    ch = inputStream.read();
+                    if (ch == -1) {
+                        throw new IOException("No more data");
+                    }
+                    if (ch == (int) '~') {
+                        buffer.put((byte) ch);
+                        break;
+                    }
                 }
-                if (ch == (int) '~') {
+
+                // start reading the message
+                int count = 1; // '~' already in buffer
+                while (true) {
+                    ch = inputStream.read();
+                    if (ch == -1) {
+                        throw new IOException("No more data");
+                    }
+                    if (ch == (int) '~') {
+                        throw new IOException("Data format exception");
+                    }
                     buffer.put((byte) ch);
-                    break;
+                    count++;
+                    if (ch == (int) '=') {
+                        break;
+                    }
                 }
-            }
 
-            // start reading the message
-            int count = 1; // '~' already in buffer
-            while (true) {
-                ch = inputStream.read();
-                if (ch == -1) {
-                    throw new IOException("No more data");
+                try {
+                    queue.put(MeasurementParser.parse(new String(buffer.array(), 0, count, "ASCII").trim()));
+                } catch (IllegalArgumentException ex) {
+                    logger.error("Data error", ex);
                 }
-                if (ch == (int) '~') {
-                    throw new IOException("Data format exception");
-                }
-                buffer.put((byte) ch);
-                count++;
-                if (ch == (int) '=') {
-                    break;
-                }
-            }
-
-            try {
-                queue.put(MeasurementParser.parse(new String(buffer.array(), 0, count, "ASCII").trim()));
-            } catch (IllegalArgumentException ex) {
-                logger.error("Data error", ex);
             }
         } catch (Exception ex) {
             logger.error("Error reading data. Reset", ex);

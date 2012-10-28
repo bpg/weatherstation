@@ -67,10 +67,9 @@ public class Connection {
         for (String port : ports) {
             try {
                 serialPort = openPort(port);
-                logger.info("Opened port {}");
                 break;
             } catch (Exception ex) {
-                logger.info("Port {} is unavailable", port);
+                logger.info("Port {} is unavailable: " + ex.getMessage(), port);
             }
         }
         if (serialPort == null) {
@@ -80,8 +79,9 @@ public class Connection {
         try {
             inputStream = serialPort.getInputStream();
             outputStream = serialPort.getOutputStream();
-
             initializeSerialPort(serialPort);
+
+            logger.debug("Serial port {} is ready", serialPort.getName());
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -96,15 +96,11 @@ public class Connection {
             throw new IOException("Port " + portName + " does not exist");
         }
 
-        String ports = System.getProperty("gnu.io.rxtx.SerialPorts", "");
-        ports += portName + File.pathSeparator; // pathSeparator -- is it required??
-        System.setProperty("gnu.io.rxtx.SerialPorts", ports);
-        logger.debug("Port has been added to RxTx system properties. New `gnu.io.rxtx.SerialPorts`: `{}`", ports);
-
+        System.setProperty("gnu.io.rxtx.SerialPorts", portName);
         try {
             Enumeration<?> identifiers = CommPortIdentifier.getPortIdentifiers();
             logger.trace("Identifiers: {}", Joiner.on(";").join(Collections.list(identifiers)));
-            CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier(PORT_NAME);
+            CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier(portName);
             if (portIdentifier.isCurrentlyOwned()) {
                 throw new IOException("Port is currently in use");
             }
@@ -152,7 +148,7 @@ public class Connection {
         serialPort.setSerialPortParams(PORT_BAUD_RATE, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
                 SerialPort.PARITY_NONE);
         serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
-        logger.info("Set baud rate: {}", PORT_BAUD_RATE);
+        logger.debug("Set baud rate: {}", PORT_BAUD_RATE);
     }
 
 
