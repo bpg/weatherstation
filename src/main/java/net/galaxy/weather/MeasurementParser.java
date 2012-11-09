@@ -1,19 +1,17 @@
 /*
- * Project: weatherstation, file: MeasurementParser.java
  * Copyright (C) 2012 Pavel Boldyrev <pboldyrev@gmail.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package net.galaxy.weather;
@@ -31,22 +29,20 @@ import java.math.MathContext;
  */
 public class MeasurementParser {
 
-    private static final Logger logger = LoggerFactory.getLogger(DataReader.class.getSimpleName());
+    private static final Logger logger = LoggerFactory.getLogger(MeasurementParser.class.getSimpleName());
 
     private static final long DT_ADD = 946684800000L;
 
     //~192:644|0|404|1900^42=
-    public static MeasurementDto parse(String str) throws IllegalArgumentException {
+    public static MeasurementDto parse(int src, String str) throws IllegalArgumentException {
         Preconditions.checkNotNull(str, "String is null");
         Preconditions.checkArgument(str.length() > 6, "Invalid string: [%s]", str);
-        Preconditions.checkArgument(str.charAt(0) == '~', "Invalid string: [%s]", str);
-        Preconditions.checkArgument(str.charAt(str.length() - 1) == '=', "Invalid string: [%s]", str);
 
         logger.debug("parsing: [{}]", str);
 
-        String payload = str.substring(1, str.lastIndexOf('^'));
+        String payload = str.substring(0, str.lastIndexOf('^'));
         logger.trace("  payload: `{}`", payload);
-        String receivedCrcStr = str.substring(str.lastIndexOf('^') + 1, str.length() - 1);
+        String receivedCrcStr = str.substring(str.lastIndexOf('^') + 1, str.length());
         logger.trace("  CRC16: `{}`", receivedCrcStr);
 
         int calculatedCrc;
@@ -79,6 +75,7 @@ public class MeasurementParser {
 
         MathContext mc = new MathContext(2);
         return new MeasurementDto(
+                src,
                 timestamp,
                 temp,
                 humid,
