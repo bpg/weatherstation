@@ -39,49 +39,52 @@ public class MeasurementParser {
         Preconditions.checkArgument(str.length() > 6, "Invalid string: [%s]", str);
 
         logger.debug("parsing: [{}]", str);
-
-        String payload = str.substring(0, str.lastIndexOf('^'));
-        logger.trace("  payload: `{}`", payload);
-        String receivedCrcStr = str.substring(str.lastIndexOf('^') + 1, str.length());
-        logger.trace("  CRC16: `{}`", receivedCrcStr);
-
-        int calculatedCrc;
         try {
-            calculatedCrc = Digest.crc16(payload.getBytes("ASCII")) & 0xFFFF;
+            String payload = str.substring(0, str.lastIndexOf('^'));
+            logger.trace("  payload: `{}`", payload);
+            String receivedCrcStr = str.substring(str.lastIndexOf('^') + 1, str.length());
+            logger.trace("  CRC16: `{}`", receivedCrcStr);
+
+            int calculatedCrc;
+            try {
+                calculatedCrc = Digest.crc16(payload.getBytes("ASCII")) & 0xFFFF;
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+
+            int receivedCrc = Integer.valueOf(receivedCrcStr, 16);
+            if (calculatedCrc != receivedCrc) {
+                throw new IllegalArgumentException("Checksum mismatch");
+            }
+
+            String[] parts = payload.split("\\|");
+            if (parts.length != 5) {
+                throw new IllegalArgumentException("Invalid format -- missing parts");
+            }
+
+            long timestamp = Long.parseLong(parts[0]) * 1000 + DT_ADD;
+
+            String[] thParts = parts[1].split(":");
+            double temp = 0;
+            double humid = 0;
+            if (thParts.length == 2) {
+                temp = Integer.valueOf(thParts[0], 10) / 10.0;
+                humid = Integer.valueOf(thParts[1], 10) / 10.0;
+                // temperature sensor error
+            }
+
+            MathContext mc = new MathContext(2);
+            return new MeasurementDto(
+                    src,
+                    timestamp,
+                    temp,
+                    humid,
+                    Integer.valueOf(parts[4], 10) / 100.0,
+                    MeasurementDto.BatteryStatus.values()[Integer.valueOf(parts[2], 10)],
+                    Integer.valueOf(parts[3], 10) / 100.0
+            );
         } catch (Exception ex) {
-            throw new RuntimeException(ex);
+            throw new IllegalArgumentException(String.format("Error parsing string [%s]: %s", str, ex.getMessage()));
         }
-
-        int receivedCrc = Integer.valueOf(receivedCrcStr, 16);
-        if (calculatedCrc != receivedCrc) {
-            throw new IllegalArgumentException(String.format("Checksum mismatch for string [%s]", str));
-        }
-
-        String[] parts = payload.split("\\|");
-        if (parts.length != 5) {
-            throw new IllegalArgumentException(String.format("Invalid format -- missing parts in string [%s]", str));
-        }
-
-        long timestamp = Long.parseLong(parts[0]) * 1000 + DT_ADD;
-
-        String[] thParts = parts[1].split(":");
-        double temp = 0;
-        double humid = 0;
-        if (thParts.length == 2) {
-            temp = Integer.valueOf(thParts[0], 10) / 10.0;
-            humid = Integer.valueOf(thParts[1], 10) / 10.0;
-            // temperature sensor error
-        }
-
-        MathContext mc = new MathContext(2);
-        return new MeasurementDto(
-                src,
-                timestamp,
-                temp,
-                humid,
-                Integer.valueOf(parts[4], 10) / 100.0,
-                MeasurementDto.BatteryStatus.values()[Integer.valueOf(parts[2], 10)],
-                Integer.valueOf(parts[3], 10) / 100.0
-        );
     }
 }
