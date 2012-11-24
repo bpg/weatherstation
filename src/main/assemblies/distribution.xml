@@ -35,6 +35,16 @@
             </includes>
             <fileMode>666</fileMode>
         </dependencySet>
+        <dependencySet>
+            <outputDirectory>/lib</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+            <excludes>
+                  <exclude>${project.groupId}</exclude>
+            </excludes>
+            <fileMode>666</fileMode>
+        </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>
